@@ -1,4 +1,4 @@
-module github.com/rvanderp/ci-ibm-cloud-webhook
+module github.com/rvanderp/vpn-cluster-proxy
 
 go 1.15
 
