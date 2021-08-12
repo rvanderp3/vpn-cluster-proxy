@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: ibm-cloud-vpn
+  name: ibm-cloud-vpn
+  namespace: ibm-vpn-proxy
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: ibm-cloud-vpn
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: ibm-cloud-vpn
+      name: ibm-cloud-vpn
+    spec:
+      containers:
+      - command:
+        - /bin/bash
+        - -c
+        - "/entrypoint.sh --method radius --host ${from_env} --user ${from_env} --passwd ${from_env}; while true; do sleep 60000; done"
+        image: quay.io/rvanderp3/ibm-cloud-vpn
+        imagePullPolicy: IfNotPresent
+        name: ibm-cloud-vpn
+        securityContext:
+          privileged: true
+        ports:
+        - containerPort: 8443
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: FallbackToLogsOnError
+        volumeMounts:
+        - mountPath: /var/run/secrets/webhook
+          name: ibm-cloud-vpn-tls
+      - command:
+        - /bin/sh
+        - -c
+        - "cat /var/run/secrets/proxy/tls.key /var/run/secrets/proxy/tls.crt > /home/mitmproxy/cert.pem; mitmdump --certs *=/home/mitmproxy/cert.pem --set ssl_insecure=true"
+        image: quay.io/rvanderp3/mitmproxy
+        imagePullPolicy: Always
+        name: ibm-cloud-vpn-proxy
+        securityContext:
+          privileged: true
+        ports:
+        - containerPort: 8080
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: FallbackToLogsOnError
+        volumeMounts:
+        - mountPath: /var/run/secrets/proxy
+          name: ibm-cloud-vpn-proxy-tls
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext:
+        runAsUser: 0
+        runAsGroup: 0
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: ibm-cloud-vpn-tls
+        secret:
+          defaultMode: 420
+          secretName: ibm-cloud-vpn-tls
+      - name: ibm-cloud-vpn-proxy-tls
+        secret:
+          defaultMode: 420
+          secretName: ibm-cloud-vpn-proxy-tls

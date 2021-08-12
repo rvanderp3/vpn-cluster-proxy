@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: ibm-cloud-vpn-webhook    
+  name: ibm-cloud-vpn-webhook
+  namespace: ibm-vpn-proxy
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: ibm-cloud-vpn-webhook
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: ibm-cloud-vpn-webhook
+      name: ibm-cloud-vpn-webhook
+    spec:
+      containers:
+      - image: quay.io/rvanderp3/vpn-cluster-proxy-webhook:latest
+        imagePullPolicy: IfNotPresent
+        name: ibm-cloud-vpn-webhook
+        ports:
+        - containerPort: 8443
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: FallbackToLogsOnError
+        volumeMounts:
+         - mountPath: /var/run/secrets/webhook
+           name: ibm-cloud-vpn-tls
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: ibm-cloud-vpn-tls
+        secret:
+          defaultMode: 420
+          secretName: ibm-cloud-vpn-tls
