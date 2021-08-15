@@ -26,8 +26,11 @@ spec:
     spec:
       containers:
       - image: quay.io/rvanderp3/vpn-cluster-proxy-webhook:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         name: ibm-cloud-vpn-webhook
+        env:
+        - name: "PROXY_URL"
+          value: "http://some-proxy:3128"
         ports:
         - containerPort: 8443
         terminationMessagePath: /dev/termination-log
